@@ -43,10 +43,14 @@ int rightSpeed = 0;
 unsigned long lastSpeedRequest = 0;
 bool speedUpdated = false;
 
+uint8_t servoPos = 90;
+bool servoUpdated = false;
+
 bool lastIRLeft = false;
 bool lastIRRight = false;
 
 WebSocketsClient webSocket;
+Servo servo;
 
 void onWebSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
 	switch(type) {
@@ -67,7 +71,7 @@ void onWebSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
             memcpy(&packetType, payload, sizeof(PacketType));
 
             if(packetType == MOVE_MOTORS) {
-                if(length < sizeof(MoveMotorsPacket)) break;
+                if(length < (sizeof(MoveMotorsPacket) + 1)) break;
 
                 MoveMotorsPacket packet;
                 memcpy(&packet, payload+1, sizeof(MoveMotorsPacket));
@@ -75,6 +79,13 @@ void onWebSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
                 rightSpeed = packet.rightPower * (packet.rightDirection == 1 ? 1 : -1);
                 lastSpeedRequest = millis();
                 speedUpdated = true;
+            } else if (packetType == MOVE_SERVO) {
+                if(length < (sizeof(MoveServoPacket) + 1)) break;
+
+                MoveServoPacket packet;
+                memcpy(&packet, payload+1, sizeof(MoveServoPacket));
+                servoPos = packet.angle;
+                servoUpdated = true;
             }
             
 			break;
@@ -111,6 +122,7 @@ void setup() {
     Serial.println("");
 
     // Setup pins
+    // Motor driver
     pinMode(DRIVER_IN_1_A, OUTPUT);
     pinMode(DRIVER_IN_2_A, OUTPUT);
     pinMode(DRIVER_IN_1_B, OUTPUT);
@@ -126,8 +138,12 @@ void setup() {
 
     digitalWrite(DRIVER_STANDBY, HIGH);
 
+    // IR sensors
     pinMode(IR_LEFT, INPUT);
     pinMode(IR_RIGHT, INPUT);
+
+    // Servo
+    servo.attach(SERVO_PIN);
 
     // Connect to wifi
     esp_wifi_set_ps(WIFI_PS_NONE);
@@ -185,6 +201,11 @@ void loop() {
         ledcWrite(DRIVER_PWM_CHANNEL_B, abs(rightSpeed));
 
         speedUpdated = false;
+    }
+
+    if(servoUpdated) {
+        servo.write(servoPos);
+        servoUpdated = false;
     }
 
     // Read and send IR data
