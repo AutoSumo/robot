@@ -36,10 +36,15 @@
 #define LIDAR_INT 25
 
 
+#define SPEED_TIMEOUT_MS 1000
+
 int leftSpeed = 0;
 int rightSpeed = 0;
 unsigned long lastSpeedRequest = 0;
 bool speedUpdated = false;
+
+bool lastIRLeft = false;
+bool lastIRRight = false;
 
 WebSocketsClient webSocket;
 
@@ -66,10 +71,10 @@ void onWebSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
 
                 MoveMotorsPacket packet;
                 memcpy(&packet, payload+1, sizeof(MoveMotorsPacket));
-                Serial.print("Left power: ");
-                Serial.print(packet.leftPower * (packet.leftDirection == 1 ? 1 : -1));
-                Serial.print(" Right power: ");
-                Serial.println(packet.rightPower * (packet.rightDirection == 1 ? 1 : -1));
+                leftSpeed = packet.leftPower * (packet.leftDirection == 1 ? 1 : -1);
+                rightSpeed = packet.rightPower * (packet.rightDirection == 1 ? 1 : -1);
+                lastSpeedRequest = millis();
+                speedUpdated = true;
             }
             
 			break;
@@ -105,6 +110,25 @@ void setup() {
     Serial.begin(115200);
     Serial.println("");
 
+    // Setup pins
+    pinMode(DRIVER_IN_1_A, OUTPUT);
+    pinMode(DRIVER_IN_2_A, OUTPUT);
+    pinMode(DRIVER_IN_1_B, OUTPUT);
+    pinMode(DRIVER_IN_2_B, OUTPUT);
+
+    pinMode(DRIVER_STANDBY, OUTPUT);
+
+    ledcAttachPin(DRIVER_PWM_A, DRIVER_PWM_CHANNEL_A);
+    ledcSetup(DRIVER_PWM_CHANNEL_A, 5000, 8);
+
+    ledcAttachPin(DRIVER_PWM_B, DRIVER_PWM_CHANNEL_B);
+    ledcSetup(DRIVER_PWM_CHANNEL_B, 5000, 8);
+
+    digitalWrite(DRIVER_STANDBY, HIGH);
+
+    pinMode(IR_LEFT, INPUT);
+    pinMode(IR_RIGHT, INPUT);
+
     // Connect to wifi
     esp_wifi_set_ps(WIFI_PS_NONE);
     Serial.print("Connecting to ");
@@ -121,7 +145,54 @@ void setup() {
     xTaskCreatePinnedToCore(websocketTask, "WS Task", 10000, NULL, 0, &wsTask, 0);
 }
 
+void sendIR(bool left, bool right) {
+    IRDataPacket irDataPacket;
+    irDataPacket.type = IR_DATA;
+    irDataPacket.left = left;
+    irDataPacket.right = right;
+
+    webSocket.sendBIN((uint8_t*) &irDataPacket, sizeof(IRDataPacket));
+}
+
 void loop() {
-    //webSocket.loop();
     delay(1);
+
+    unsigned long now = millis();
+
+    if(now - lastSpeedRequest >= SPEED_TIMEOUT_MS) {
+        leftSpeed = 0;
+        rightSpeed = 0;
+        speedUpdated = true;
+    }
+
+    if(speedUpdated) {
+        if(leftSpeed > 0) {
+            digitalWrite(DRIVER_IN_1_A, LOW);
+            digitalWrite(DRIVER_IN_2_A, HIGH);
+        } else {
+            digitalWrite(DRIVER_IN_1_A, HIGH);
+            digitalWrite(DRIVER_IN_2_A, LOW);
+        }
+        ledcWrite(DRIVER_PWM_CHANNEL_A, abs(leftSpeed));
+
+        if(rightSpeed > 0) {
+            digitalWrite(DRIVER_IN_1_B, LOW);
+            digitalWrite(DRIVER_IN_2_B, HIGH);
+        } else {
+            digitalWrite(DRIVER_IN_1_B, HIGH);
+            digitalWrite(DRIVER_IN_2_B, LOW);
+        }
+        ledcWrite(DRIVER_PWM_CHANNEL_B, abs(rightSpeed));
+
+        speedUpdated = false;
+    }
+
+    // Read and send IR data
+    bool irLeft = digitalRead(IR_LEFT) == HIGH ? true : false;
+    bool irRight = digitalRead(IR_RIGHT) == HIGH ? true : false;
+    if(irLeft != lastIRLeft || irRight != lastIRRight) {
+        lastIRLeft = irLeft;
+        lastIRRight = irRight;
+        sendIR(irLeft, irRight);
+    }
 }

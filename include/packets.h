@@ -4,7 +4,8 @@
 
 enum PacketType : uint8_t
 {
-    MOVE_MOTORS = 1
+    MOVE_MOTORS = 1,
+    IR_DATA
 };
 
 struct MoveMotorsPacket
@@ -13,4 +14,11 @@ struct MoveMotorsPacket
     uint16_t leftPower;
     uint8_t rightDirection;
     uint16_t rightPower;
+};
+
+struct IRDataPacket
+{
+    PacketType type;
+    uint8_t left;
+    uint8_t right;
 };
