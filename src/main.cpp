@@ -37,6 +37,7 @@
 
 
 #define SPEED_TIMEOUT_MS 1000
+#define LIDAR_INTERVAL 100
 
 int leftSpeed = 0;
 int rightSpeed = 0;
@@ -49,8 +50,13 @@ bool servoUpdated = false;
 bool lastIRLeft = false;
 bool lastIRRight = false;
 
+unsigned long lidarLastSent = 0;
+
 WebSocketsClient webSocket;
 Servo servo;
+
+Adafruit_VL6180X vl = Adafruit_VL6180X();
+TwoWire lidarTwoWire = TwoWire(0);
 
 void onWebSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
 	switch(type) {
@@ -145,6 +151,10 @@ void setup() {
     // Servo
     servo.attach(SERVO_PIN);
 
+    // Lidar
+    lidarTwoWire.begin(LIDAR_SDA, LIDAR_SCL, 100000);
+    vl.begin(&lidarTwoWire);
+
     // Connect to wifi
     esp_wifi_set_ps(WIFI_PS_NONE);
     Serial.print("Connecting to ");
@@ -168,6 +178,14 @@ void sendIR(bool left, bool right) {
     irDataPacket.right = right;
 
     webSocket.sendBIN((uint8_t*) &irDataPacket, sizeof(IRDataPacket));
+}
+
+void sendLidar(uint8_t range, uint8_t status) {
+    LidarDataPacket lidarDataPacket;
+    lidarDataPacket.type = LIDAR_DATA;
+    lidarDataPacket.range = range;
+    lidarDataPacket.status = status;
+    webSocket.sendBIN((uint8_t*) &lidarDataPacket, sizeof(LidarDataPacket));
 }
 
 void loop() {
@@ -215,5 +233,13 @@ void loop() {
         lastIRLeft = irLeft;
         lastIRRight = irRight;
         sendIR(irLeft, irRight);
+    }
+
+    // Send LiDAR data
+    if(now - lidarLastSent > LIDAR_INTERVAL) {
+        uint8_t range = vl.readRange();
+        uint8_t status = vl.readRangeStatus();
+        sendLidar(range, status);
+        lidarLastSent = now;
     }
 }
