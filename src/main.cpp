@@ -1,5 +1,5 @@
 #include <Arduino.h>
-#include <Servo.h>
+#include <ESP32Servo.h>
 #include <Wire.h>
 #include "Adafruit_VL6180X.h"
 #include <WiFi.h>
@@ -12,12 +12,12 @@
 #define DRIVER_STANDBY 19
 
 #define DRIVER_PWM_A 22
-#define DRIVER_PWM_CHANNEL_A 0
+#define DRIVER_PWM_CHANNEL_A 14
 #define DRIVER_IN_1_A 21
 #define DRIVER_IN_2_A 23
 
 #define DRIVER_PWM_B 17
-#define DRIVER_PWM_CHANNEL_B 1
+#define DRIVER_PWM_CHANNEL_B 15
 #define DRIVER_IN_1_B 18
 #define DRIVER_IN_2_B 5
 
