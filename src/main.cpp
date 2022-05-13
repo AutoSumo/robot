@@ -65,6 +65,7 @@ void onWebSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
 			break;
 		case WStype_CONNECTED:
 			Serial.println("Connected to websocket!");
+            webSocket.sendTXT(ROBOT_ID);
 			break;
 		case WStype_TEXT:
             // Send text data back
@@ -226,20 +227,22 @@ void loop() {
         servoUpdated = false;
     }
 
-    // Read and send IR data
-    bool irLeft = digitalRead(IR_LEFT) == HIGH ? true : false;
-    bool irRight = digitalRead(IR_RIGHT) == HIGH ? true : false;
-    if(irLeft != lastIRLeft || irRight != lastIRRight) {
-        lastIRLeft = irLeft;
-        lastIRRight = irRight;
-        sendIR(irLeft, irRight);
-    }
+    if(webSocket.isConnected()) {
+        // Read and send IR data
+        bool irLeft = digitalRead(IR_LEFT) == HIGH ? true : false;
+        bool irRight = digitalRead(IR_RIGHT) == HIGH ? true : false;
+        if(irLeft != lastIRLeft || irRight != lastIRRight) {
+            lastIRLeft = irLeft;
+            lastIRRight = irRight;
+            sendIR(irLeft, irRight);
+        }
 
-    // Send LiDAR data
-    if(now - lidarLastSent > LIDAR_INTERVAL) {
-        uint8_t range = vl.readRange();
-        uint8_t status = vl.readRangeStatus();
-        sendLidar(range, status);
-        lidarLastSent = now;
+        // Send LiDAR data
+        if(now - lidarLastSent > LIDAR_INTERVAL) {
+            uint8_t range = vl.readRange();
+            uint8_t status = vl.readRangeStatus();
+            sendLidar(range, status);
+            lidarLastSent = now;
+        }
     }
 }
