@@ -153,7 +153,7 @@ void setup() {
     servo.attach(SERVO_PIN);
 
     // Lidar
-    lidarTwoWire.begin(LIDAR_SDA, LIDAR_SCL, 100000);
+    lidarTwoWire.begin(LIDAR_SDA, LIDAR_SCL, (uint32_t) 100000);
     vl.begin(&lidarTwoWire);
 
     // Connect to wifi
@@ -243,6 +243,8 @@ void loop() {
             uint8_t status = vl.readRangeStatus();
             sendLidar(range, status);
             lidarLastSent = now;
+
+            sendIR(digitalRead(IR_LEFT) == HIGH ? true : false, digitalRead(IR_RIGHT) == HIGH ? true : false);
         }
     }
 }
