@@ -28,10 +28,12 @@ https://user-images.githubusercontent.com/26680599/185769401-c024f6a5-496c-4001-
  - Dual H-Bridge motor driver chosen for size and efficiency
  - Back-mounted rechargable battery
  - Two DC motors for drive
-
-Sensors:
  - Two infrared line sensors mounted to the front of the robot
- - Single-point LIDAR mouinted to a servo with a 180 degree range of motion
+ - Single-point LIDAR mounted to a servo with a 180 degree range of motion
  - Two infrared tachometers (one for each wheel)
 
-Robot body is fully 3D printed and assembled using M3 screws and nuts.
+Robot body is fully 3D printed and assembled using M3 screws and nuts. Designed using Fusion 360.
+
+[![Robot body in Fusion 360](https://user-images.githubusercontent.com/26680599/186747566-b6fe78d5-234d-42a8-a620-afc675234ee1.png)](./3d/)
+![Picture of the robot](https://user-images.githubusercontent.com/26680599/186748286-b1a7dc94-7e34-44f7-9d12-4bc15a54bf48.jpg)
+![Picture of the underside of the robot](https://user-images.githubusercontent.com/26680599/186748291-354b9bca-f11a-4f92-94e0-9022a0ad5487.jpg)
